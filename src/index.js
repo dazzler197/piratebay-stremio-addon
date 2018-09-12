@@ -19,16 +19,19 @@ const manifest = {
 	'isFree': true,
 	'email': 'thanosdi@live.com',
 	'endpoint': 'https://piratebay-stremio-addon.herokuapp.com/stremio/v1',
-	'types': ['movie', 'series'],
-	'background':'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
-	'idProperty': ['ptb_id', 'imdb_id'], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
+	'types': [ 'movie', 'series' ],
+	'background': 'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
+	'idProperty': [ 'imdb_id' ], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
 	// We need this for pre-4.0 Stremio, it's the obsolete equivalent of types/idProperty
-	'filter': { 'query.imdb_id': { '$exists': true }, 'query.type': { '$in':['series','movie'] } }
+	'filter': {
+		'query.imdb_id': { '$exists': true },
+		'query.type': { '$in': [ 'series', 'movie' ] }
+	}
 };
 
 const manifestLocal = {
 	'id': 'org.stremio.piratebay.local',
-	'version': '1.3.0',
+	'version': '1.3.0.beta',
 	'name': 'PirateBay Addon local',
 	'description': 'Fetch PirateBay entries on a single episode or series. local',
 	'icon': 'https://static.wareziens.net/wp-content/image.php?url=http://www.turbopix.fr/up/1326291999.png',
@@ -36,21 +39,24 @@ const manifestLocal = {
 	'isFree': true,
 	'email': 'thanosdi@live.com',
 	'endpoint': 'http://localhost:7000/stremioget/stremio/v1',
-	'types': ['movie', 'series'],
-	'background':'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
-	'idProperty': ['ptb_id', 'imdb_id'], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
+	'types': [ 'movie', 'series' ],
+	'background': 'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
+	'idProperty': [ 'imdb_id' ], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
 	// We need this for pre-4.0 Stremio, it's the obsolete equivalent of types/idProperty
-	'filter': { 'query.imdb_id': { '$exists': true }, 'query.type': { '$in':['series','movie'] } }
+	'filter': {
+		'query.imdb_id': { '$exists': true },
+		'query.type': { '$in': [ 'series', 'movie' ] }
+	}
 };
 
 const addon = new Stremio.Server({
-	'stream.find': async (args, callback) => {
+	'stream.find': async ( args, callback ) => {
 		/* Handle non ptb_id results*/
 		const title = await createTitle(args);
 		try {
 			const results = await ptbSearch(title);
-			const resolve = results.map( episode => {
-				const {infoHash, announce } = magnet.decode(episode.magnetLink);
+			const resolve = results.map(episode => {
+				const { infoHash, announce } = magnet.decode(episode.magnetLink);
 				const availability = episode.seeders == 0 ? 0 : episode.seeders < 5 ? 1 : 2;
 				const detail = `${episode.name}\n👤 ${episode.seeders}`;
 				return {
@@ -61,9 +67,10 @@ const addon = new Stremio.Server({
 				};
 			});
 			return callback(null, resolve);
-		} catch (e) {}
+		} catch (e) {
+		}
 	},
-}, manifest);
+}, process.env.ENV === 'dev' ? manifestLocal : manifest);
 
 /*  Construct title based on movie or series
  *  If series get title name by imdb_id and append season and episode
@@ -71,7 +78,7 @@ const addon = new Stremio.Server({
  */
 const createTitle = async args => {
 	let title = args.query.imdb_id || args.query.id;
-	switch (args.query.type) {
+	switch ( args.query.type ) {
 		case 'series':
 			try {
 				const data = await imdbIdToName(args.query.imdb_id);
@@ -93,8 +100,8 @@ const createTitle = async args => {
 	}
 };
 
-const server = require('http').createServer((req, res) => {
-	addon.middleware(req, res, async function() {
+const server = require('http').createServer(( req, res ) => {
+	addon.middleware(req, res, async function () {
 		return res.end()
 	}); // wire the middleware - also compatible with connect / express
 })
